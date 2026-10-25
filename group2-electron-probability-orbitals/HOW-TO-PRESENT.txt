@@ -1,0 +1,19 @@
+Group 2 - Electron Probability and Orbitals
+Grade 11 Chemistry, Unit 1.6, textbook pages 35-36
+
+TO PRESENT
+1. Double-click index.html (it opens in your browser).
+2. Press F, or click the arrows button at the bottom right, for full screen.
+3. Arrow keys, Page Up / Page Down, or Space move between slides.
+   On a touchscreen, swipe. Clicking the right or left half also works.
+4. On the last slide, click a question to reveal our answer.
+
+BEFORE YOU PRESENT
+Slide 1 still says [names], [name] - open index.html in any text editor
+(Notepad works) and replace them with the group's names.
+
+NOTES
+- Keep index.html in the same folder as the img and vid folders, or the
+  pictures and clips will not load.
+- The fonts come from the internet. Offline it still works, just in a
+  plainer typeface.

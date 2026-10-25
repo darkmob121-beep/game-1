@@ -1,0 +1,795 @@
+<title>Group 2: Where Is the Electron?</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&family=IBM+Plex+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,200..500&display=swap">
+
+<style>
+/* Layout: a 16:9 cinematic stage, one slide at a time; clips are screen-blended so the
+   glow floats on the ground with no video box. Under 760px it unrolls into a scroll. */
+:root{
+  --ink:#04060D;          /* ground */
+  --ink-2:#070B16;
+  --veil:rgba(140,180,255,.055);
+  --edge:rgba(140,180,255,.14);
+  --fg:#EDF3FF;
+  --fg-2:#9DB0CE;         /* blue-biased neutral, never a flat grey */
+  --cy:#4FCBFF;
+  --vi:#AE90FF;
+  --am:#FFB053;
+  --gr:#4FE3A8;
+  --display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --body:"Newsreader",Georgia,"Times New Roman",serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  /* Projector scale: the reading sizes (--b, --s, --m, --h) are about a third up on the
+     first pass, and the margins came in to pay for them. */
+  --d1:6.8cqw; --d2:3.5cqw; --h:2.5cqw; --b:2.05cqw; --s:1.62cqw; --m:1.22cqw; --stat:6.6cqw;
+  --gap:2.2cqw; --pad:3.9cqw;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--ink); color:var(--fg);
+  font-family:var(--body); -webkit-font-smoothing:antialiased;
+  display:flex; flex-direction:column; overflow-x:hidden;
+}
+body::after{ /* ambient depth, fixed behind everything */
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:
+    radial-gradient(60% 55% at 78% 22%, rgba(30,78,150,.30), transparent 70%),
+    radial-gradient(50% 50% at 10% 92%, rgba(70,40,130,.26), transparent 70%);
+}
+.stageWrap{
+  position:relative; z-index:1; flex:1; display:grid; place-items:center;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:14px 76px;
+}
+.stage{
+  container-type:inline-size;
+  position:relative; width:100%; max-width:calc((100dvh - 108px) * 16 / 9);
+  aspect-ratio:16/9; overflow:hidden; border-radius:16px;
+  background:linear-gradient(160deg,var(--ink-2),var(--ink) 62%);
+  box-shadow:0 30px 90px -40px #000, 0 0 0 1px var(--edge);
+}
+
+/* ---------- slides ---------- */
+/* Slides morph where the browser supports View Transitions: the heading and the media
+   panel keep their identity and travel to their new size and place. Everything else
+   dollies through. Older browsers get the dolly on its own. */
+.slide{
+  position:absolute; inset:0; padding:var(--pad);
+  display:grid; align-content:center; gap:var(--gap);
+  opacity:0; visibility:hidden; pointer-events:none;
+}
+.slide.on{opacity:1; visibility:visible; pointer-events:auto; transition:opacity .34s ease}
+.slide.out{opacity:0; visibility:visible; transition:opacity .34s ease}
+
+/* The words settle in after the cloud has arrived, never at the same time. */
+@keyframes rise{from{opacity:0; transform:translateY(16px)} to{opacity:1; transform:none}}
+.slide.on .stack > p, .slide.on .stack > h2, .slide.on .stack > h3,
+.slide.on .stack > ul, .slide.on .stack > .card, .slide.on .stack > .note,
+.slide.on .stack > .row, .slide.on .stack > svg, .slide.on .stack > .cmp,
+.slide.on .stack > .qa, .slide.on .stack > .clip,
+.slide.on > .eyebrow, .slide.on > h1, .slide.on > .lede, .slide.on > .small{
+  animation:rise .55s cubic-bezier(.22,1,.36,1) both;
+}
+.slide.on .stack > *:nth-child(1){animation-delay:.16s}
+.slide.on .stack > *:nth-child(2){animation-delay:.23s}
+.slide.on .stack > *:nth-child(3){animation-delay:.30s}
+.slide.on .stack > *:nth-child(4){animation-delay:.37s}
+.slide.on .stack > *:nth-child(5){animation-delay:.44s}
+.slide.on .stack > *:nth-child(6){animation-delay:.51s}
+.slide.on > .eyebrow{animation-delay:.12s}
+.slide.on > h1{animation-delay:.20s}
+.slide.on > .lede{animation-delay:.30s}
+.slide.on > .small{animation-delay:.38s}
+
+/* Theater fills the window even where the page is refused real fullscreen. */
+body.theater .stageWrap{position:fixed; inset:0; z-index:40; padding:0; background:var(--ink)}
+body.theater .stage{border-radius:0; box-shadow:none; max-width:min(100vw, calc(100dvh * 16 / 9))}
+body.theater .hud{z-index:41; opacity:.14; transition:opacity .25s ease}
+body.theater .hud:hover,body.theater .hud:focus-within{opacity:1}
+
+.eyebrow{
+  font-family:var(--mono); font-size:var(--m); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--cy); margin:0;
+}
+h1{
+  font-family:var(--display); font-variation-settings:"wdth" 118; font-weight:800;
+  font-size:var(--d1); line-height:.95; letter-spacing:-.02em; margin:0; text-wrap:balance;
+}
+h2{
+  font-family:var(--display); font-variation-settings:"wdth" 116; font-weight:700;
+  font-size:var(--d2); line-height:1.02; letter-spacing:-.015em; margin:0; text-wrap:balance;
+}
+h3{
+  font-family:var(--display); font-variation-settings:"wdth" 108; font-weight:600;
+  font-size:var(--h); line-height:1.15; margin:0;
+}
+p{margin:0; font-size:var(--b); line-height:1.5; max-width:62ch; font-weight:300}
+.dim{color:var(--fg-2)}
+.lede{font-size:var(--h); line-height:1.35; font-weight:200}
+.small{font-size:var(--s); line-height:1.45}
+strong{font-weight:500; color:var(--fg)}
+em{font-style:italic; color:var(--fg)}
+.k{font-family:var(--mono); font-size:.92em; color:var(--cy); font-weight:500; white-space:nowrap}
+
+/* ---------- structure ---------- */
+.cols{display:grid; grid-template-columns:1fr 1fr; gap:var(--gap); align-items:center}
+.cols.wide-l{grid-template-columns:1.25fr 1fr}
+.cols.wide-r{grid-template-columns:1fr 1.3fr}
+.stack{display:grid; gap:1.5cqw; align-content:start}
+.row{display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:1.5cqw}
+
+.card{
+  background:var(--veil); border:1px solid var(--edge); border-radius:1.1cqw;
+  padding:1.8cqw 2cqw; display:grid; gap:.7cqw; align-content:start;
+}
+.card .lab{font-family:var(--mono); font-size:var(--m); letter-spacing:.1em; text-transform:uppercase; color:var(--fg-2)}
+.glyph{font-family:var(--display); font-variation-settings:"wdth" 110; font-weight:700; font-size:4.6cqw; line-height:1}
+.num{font-family:var(--display); font-variation-settings:"wdth" 112; font-weight:700; font-size:2.9cqw; line-height:1}
+.stat{font-family:var(--display); font-variation-settings:"wdth" 120; font-weight:800; font-size:var(--stat); line-height:.9; letter-spacing:-.03em}
+
+.list{display:grid; gap:1.25cqw; margin:0; padding:0; list-style:none}
+.list li{display:grid; grid-template-columns:auto 1fr; gap:1.3cqw; align-items:baseline; font-size:var(--b); line-height:1.45; font-weight:300}
+.list .mk{font-family:var(--mono); font-size:var(--s); color:var(--cy); font-weight:500}
+
+.note{
+  border-left:2px solid var(--cy); padding-left:1.5cqw;
+  display:grid; gap:.55cqw;
+}
+.note .tag{font-family:var(--mono); font-size:var(--m); letter-spacing:.12em; text-transform:uppercase; color:var(--cy)}
+
+/* ---------- the comparison table ---------- */
+.cmp{width:100%; border-collapse:collapse; font-size:var(--s); font-weight:300}
+.cmp th,.cmp td{text-align:left; padding:.8cqw 1cqw; border-bottom:1px solid var(--edge); vertical-align:top; line-height:1.4}
+.cmp th{font-family:var(--mono); font-size:var(--m); letter-spacing:.1em; text-transform:uppercase; color:var(--fg-2); font-weight:500}
+.cmp th:last-child{color:var(--cy)}
+.cmp td:first-child{color:var(--fg); font-weight:400; white-space:nowrap}
+.cmp td{color:var(--fg-2)}
+.cmp td:last-child{color:var(--fg)}
+.cmp tr:last-child td{border-bottom:0}
+
+/* ---------- the labelled diagram ---------- */
+.dgm{position:relative; width:100%; aspect-ratio:1}
+.dgm img{width:100%; height:100%; object-fit:cover; border-radius:1.1cqw; mix-blend-mode:screen}
+.dgm .ring{position:absolute; inset:17%; border:1px dashed var(--cy); border-radius:50%; opacity:.85}
+.dgm .bdg{
+  position:absolute; transform:translate(-50%,-50%);
+  width:3.3cqw; height:3.3cqw; border-radius:50%;
+  background:var(--cy); color:#04060D;
+  font-family:var(--mono); font-size:var(--m); font-weight:500;
+  display:grid; place-items:center;
+}
+.legend{display:grid; gap:1.15cqw; margin:0; padding:0; list-style:none}
+.legend li{display:grid; grid-template-columns:auto 1fr; gap:1.2cqw; align-items:start; font-size:var(--s); line-height:1.45; font-weight:300; color:var(--fg-2)}
+.legend .n{
+  width:2.7cqw; height:2.7cqw; border-radius:50%; background:var(--cy); color:#04060D;
+  font-family:var(--mono); font-size:var(--m); font-weight:500; display:grid; place-items:center;
+}
+
+/* ---------- questions that open ---------- */
+/* The answer is folded away until someone asks for it, so the class gets a go first. */
+.qa{
+  background:var(--veil); border:1px solid var(--edge); border-radius:1.1cqw;
+  padding:1.6cqw 2cqw; display:grid; gap:1cqw;
+  transition:border-color .2s ease, background .2s ease;
+}
+.qa:hover{border-color:rgba(140,180,255,.38); background:rgba(140,180,255,.09)}
+.qa > summary{list-style:none; cursor:pointer; display:grid; gap:.7cqw}
+.qa > summary::-webkit-details-marker{display:none}
+.qa > summary:focus-visible{outline:2px solid var(--cy); outline-offset:4px}
+.qa .lab{font-family:var(--mono); font-size:var(--m); letter-spacing:.1em; text-transform:uppercase; color:var(--fg-2)}
+.qa .q{font-size:var(--b); line-height:1.35; font-weight:300; max-width:44ch}
+.qa .hint{font-family:var(--mono); font-size:var(--m); letter-spacing:.1em; text-transform:uppercase; color:var(--cy)}
+.qa .hint.open{display:none; color:var(--fg-2)}
+.qa[open] .hint.shut{display:none}
+.qa[open] .hint.open{display:block}
+.qa .ans{
+  border-left:2px solid var(--am); padding-left:1.5cqw; display:grid; gap:.55cqw;
+  animation:rise .42s cubic-bezier(.22,1,.36,1) both;
+}
+
+/* ---------- media ---------- */
+.clip,.shot{position:relative; display:block; width:100%; overflow:hidden}
+.clip video,.shot img{
+  display:block; width:100%; height:100%; object-fit:cover;
+  mix-blend-mode:screen;              /* kills the black box: the glow floats */
+}
+.bg{position:absolute; inset:0; pointer-events:none}
+.bg video{width:100%; height:100%; object-fit:cover; mix-blend-mode:screen; opacity:.62}
+.bg::after{content:""; position:absolute; inset:0;
+  background:linear-gradient(90deg,var(--ink) 4%,rgba(4,6,13,.72) 42%,rgba(4,6,13,.1) 78%)}
+/* .bg.left keeps the clip on the LEFT and the dark side under the words on the right.
+   The video box is narrowed to the left 62% too, so the orbital sits in the middle of
+   the clear side instead of behind the text. */
+.bg.left::after{
+  background:linear-gradient(270deg,var(--ink) 4%,rgba(4,6,13,.72) 42%,rgba(4,6,13,.1) 78%)}
+/* contain, not cover: the whole frame shows, so the orbital never has its edges clipped. */
+.bg.left video{width:62%; opacity:.8; object-fit:contain}
+.slide > *:not(.bg){position:relative}
+.cap{font-family:var(--mono); font-size:var(--m); color:var(--fg-2); letter-spacing:.06em; text-align:center; margin-top:.8cqw}
+.credit{font-family:var(--mono); font-size:var(--m); line-height:1.75; color:var(--fg-2); margin-top:2.4cqw; text-align:left}
+.sq{aspect-ratio:1}
+.vid{aspect-ratio:16/9}
+
+/* ---------- chart ---------- */
+.chart{width:100%; height:auto; display:block}
+.chart .ax{stroke:rgba(157,176,206,.3); stroke-width:1}
+.chart .gl{stroke:rgba(157,176,206,.14); stroke-width:1}
+.chart text{fill:var(--fg-2); font-family:var(--mono); font-size:11px}
+.chart .fill{fill:url(#g1)}
+.chart .ln{fill:none; stroke:var(--cy); stroke-width:2.4; vector-effect:non-scaling-stroke}
+
+/* ---------- hud ---------- */
+.hud{
+  position:fixed; left:0; right:0; bottom:0; z-index:5;
+  display:flex; align-items:center; justify-content:center; gap:14px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:12px; padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));
+  background:linear-gradient(transparent,rgba(4,6,13,.9) 55%);
+}
+.hud button{
+  font-family:var(--mono); font-size:13px; color:var(--fg-2); cursor:pointer;
+  background:rgba(140,180,255,.07); border:1px solid var(--edge); border-radius:9px;
+  padding:7px 12px; transition:color .18s,border-color .18s,background .18s;
+}
+.hud button:hover{color:var(--fg); border-color:rgba(140,180,255,.38); background:rgba(140,180,255,.13)}
+.hud button:focus-visible,.dot:focus-visible{outline:2px solid var(--cy); outline-offset:2px}
+.count{font-family:var(--mono); font-size:13px; color:var(--fg-2); font-variant-numeric:tabular-nums; min-width:62px; text-align:center}
+.dots{display:flex; gap:7px}
+.dot{width:7px; height:7px; border-radius:50%; border:0; padding:0; cursor:pointer;
+  background:rgba(157,176,206,.3); transition:background .2s,transform .2s}
+.dot[aria-current="true"]{background:var(--cy); transform:scale(1.45)}
+
+/* ---------- phone: unroll into a scroll ---------- */
+@media (max-width:760px){
+  :root{--d1:2.4rem; --d2:1.55rem; --h:1.3rem; --b:1.15rem; --s:1rem; --m:.8rem; --stat:3.1rem;
+        --gap:18px; --pad:20px}
+  .bg.left video{width:100%; object-fit:cover}
+  .stageWrap{padding-block:10px 70px}
+  .stage{max-width:none; aspect-ratio:auto; container-type:normal; border-radius:12px}
+  .slide{position:static; opacity:1; visibility:visible; padding-block:34px;
+    border-bottom:1px solid var(--edge); min-height:0}
+  .slide:last-child{border-bottom:0}
+  .cols,.cols.wide-l,.cols.wide-r{grid-template-columns:1fr}
+  .row{grid-auto-flow:row}
+  .card{border-radius:12px; padding:14px 16px; gap:5px}
+  .glyph{font-size:2rem} .num{font-size:1.4rem}
+  .list li{gap:10px} .note{padding-left:12px}
+  .cmp th,.cmp td{padding:8px 10px}
+  .cmp td:first-child{white-space:normal}
+  .dgm .bdg{width:26px; height:26px}
+  .legend li{gap:10px}
+  .legend .n{width:22px; height:22px}
+  .bg{position:absolute; inset:0; opacity:.5}
+  .bg::after,.bg.left::after{background:linear-gradient(180deg,rgba(4,6,13,.55),rgba(4,6,13,.9))}
+  .qa{border-radius:12px; padding:14px 16px; gap:10px}
+  .qa .ans{padding-left:12px}
+  .hud .dots,.hud .count{display:none}
+  .hud{background:none; pointer-events:none}
+  .hud button{pointer-events:auto}
+  .cap{margin-top:6px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none !important; transition:none !important}
+}
+</style>
+
+<div class="stageWrap">
+<div class="stage" id="stage">
+
+<!-- 1 ───────────────────────────── title -->
+<section class="slide on" aria-label="Title">
+  <div class="bg"><video src="vid/01_into_the_atom.mp4" autoplay muted loop playsinline></video></div>
+  <p class="eyebrow">Group 2 · Grade 11 Chemistry · Unit 1.6 · Pages 35–36</p>
+  <h1>Where is the<br>electron?</h1>
+  <p class="lede dim" style="max-width:40ch">Our topic: electron probability and orbitals. The orbits you were
+  taught are not there. What is there is a cloud of probability — and it can be drawn, counted and photographed.</p>
+  <p class="small dim" style="font-family:var(--mono);letter-spacing:.08em">Members: [imran,
+                                                                                      olana]</p>
+</section>
+
+<!-- 2 ───────────────────────────── Q1 the cloud -->
+<section class="slide" aria-label="Question one: the electron probability cloud">
+  <div class="cols wide-r">
+    <div>
+      <div class="shot sq"><img src="img/dots.jpg" alt="Scattered points marking where a single electron was found in repeated measurements"></div>
+      <p class="cap">One electron, many measurements</p>
+    </div>
+    <div class="stack">
+      <p class="eyebrow">Question 1 · 1.6.2</p>
+      <h2>The probability cloud</h2>
+      <p class="dim">In our own words: a <strong>map of chance</strong>. Measure one electron's position over
+      and over and every result lands somewhere different. Plot them all and a cloud appears.</p>
+      <ul class="list">
+        <li><span class="mk">01</span><span>Every dot is a <em>separate measurement</em>, not a step on a journey.</span></li>
+        <li><span class="mk">02</span><span>Dense and bright means likely; faint means unlikely.</span></li>
+        <li><span class="mk">03</span><span>No sharp edge — the cloud just fades out.</span></li>
+      </ul>
+      <div class="note">
+        <span class="tag">Where the cloud comes from</span>
+        <p class="small dim">ψ is the wave function; <span class="k">ψ²</span> gives the probability of finding
+        the electron at a point. The cloud is ψ² drawn.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 ───────────────────────────── psi squared -->
+<section class="slide" aria-label="Psi squared turns the wave into odds">
+  <div class="bg"><video src="vid/02_cloud_sliced.mp4" autoplay muted loop playsinline></video></div>
+  <div class="cols wide-l">
+    <div class="stack">
+      <p class="eyebrow">Question 1 · the maths behind the cloud</p>
+      <h2>ψ² turns the wave<br>into odds</h2>
+      <p class="dim">Schrödinger's equation treats the electron as a standing wave. Each solution is a
+      wave function, <span class="k">ψ</span>. On its own ψ measures nothing — but <span class="k">ψ²</span>
+      is the probability of finding the electron in a region of space.</p>
+      <div class="note">
+        <span class="tag">2013 · AMOLF, Netherlands</span>
+        <p class="small dim">Aneta Stodolna's team magnified electrons escaping from hydrogen atoms more than
+        20,000× onto a detector. Stack enough of those events and the node rings of ψ² appear — the first
+        direct look at an atom's wave function.</p>
+      </div>
+    </div>
+    <div class="stack">
+      <svg class="chart" viewBox="0 0 360 212" role="img" aria-label="Radial probability for a 1s electron, peaking at one Bohr radius">
+        <defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#4FCBFF" stop-opacity=".45"/>
+          <stop offset="1" stop-color="#4FCBFF" stop-opacity="0"/>
+        </linearGradient></defs>
+        <line class="gl" x1="42" y1="119.3" x2="348" y2="119.3"/><line class="gl" x1="42" y1="70.7" x2="348" y2="70.7"/><line class="gl" x1="42" y1="22.0" x2="348" y2="22.0"/>
+        <path class="fill" d="M42.00,168.00 L43.27,167.36 L44.55,165.56 L45.83,162.78 L47.10,159.17 L48.38,154.87 L49.65,150.02 L50.92,144.72 L52.20,139.07 L53.48,133.18 L54.75,127.10 L56.02,120.93 L57.30,114.71 L58.58,108.51 L59.85,102.37 L61.12,96.34 L62.40,90.44 L63.67,84.71 L64.95,79.18 L66.22,73.87 L67.50,68.78 L68.78,63.95 L70.05,59.37 L71.33,55.06 L72.60,51.03 L73.88,47.26 L75.15,43.78 L76.43,40.58 L77.70,37.65 L78.97,34.99 L80.25,32.60 L81.53,30.47 L82.80,28.60 L84.07,26.99 L85.35,25.61 L86.62,24.47 L87.90,23.56 L89.18,22.86 L90.45,22.38 L91.72,22.09 L93.00,22.00 L94.27,22.09 L95.55,22.35 L96.83,22.78 L98.10,23.36 L99.38,24.09 L100.65,24.96 L101.92,25.96 L103.20,27.07 L104.48,28.30 L105.75,29.64 L107.02,31.07 L108.30,32.59 L109.58,34.19 L110.85,35.87 L112.12,37.61 L113.40,39.42 L114.68,41.28 L115.95,43.20 L117.23,45.16 L118.50,47.15 L119.77,49.18 L121.05,51.24 L122.33,53.32 L123.60,55.43 L124.88,57.54 L126.15,59.67 L127.42,61.81 L128.70,63.95 L129.98,66.09 L131.25,68.23 L132.53,70.37 L133.80,72.49 L135.07,74.61 L136.35,76.72 L137.62,78.81 L138.90,80.88 L140.18,82.93 L141.45,84.96 L142.72,86.98 L144.00,88.96 L145.27,90.93 L146.55,92.87 L147.83,94.78 L149.10,96.66 L150.38,98.51 L151.65,100.34 L152.93,102.13 L154.20,103.90 L155.48,105.63 L156.75,107.33 L158.02,109.00 L159.30,110.64 L160.57,112.24 L161.85,113.81 L163.12,115.35 L164.40,116.86 L165.67,118.34 L166.95,119.78 L168.23,121.19 L169.50,122.57 L170.78,123.92 L172.05,125.23 L173.33,126.52 L174.60,127.77 L175.88,128.99 L177.15,130.18 L178.42,131.35 L179.70,132.48 L180.97,133.58 L182.25,134.66 L183.52,135.71 L184.80,136.72 L186.08,137.72 L187.35,138.68 L188.62,139.62 L189.90,140.53 L191.17,141.42 L192.45,142.28 L193.72,143.12 L195.00,143.93 L196.28,144.72 L197.55,145.49 L198.83,146.24 L200.10,146.96 L201.38,147.66 L202.65,148.34 L203.93,149.00 L205.20,149.64 L206.47,150.27 L207.75,150.87 L209.02,151.45 L210.30,152.02 L211.58,152.57 L212.85,153.10 L214.12,153.61 L215.40,154.11 L216.67,154.59 L217.95,155.06 L219.23,155.51 L220.50,155.95 L221.78,156.37 L223.05,156.78 L224.32,157.18 L225.60,157.56 L226.88,157.93 L228.15,158.29 L229.42,158.64 L230.70,158.97 L231.97,159.30 L233.25,159.61 L234.53,159.91 L235.80,160.20 L237.08,160.49 L238.35,160.76 L239.62,161.02 L240.90,161.28 L242.18,161.52 L243.45,161.76 L244.72,161.99 L246.00,162.21 L247.28,162.42 L248.55,162.63 L249.83,162.83 L251.10,163.02 L252.38,163.20 L253.65,163.38 L254.92,163.55 L256.20,163.72 L257.48,163.88 L258.75,164.04 L260.02,164.18 L261.30,164.33 L262.57,164.47 L263.85,164.60 L265.12,164.73 L266.40,164.85 L267.67,164.97 L268.95,165.09 L270.22,165.20 L271.50,165.30 L272.78,165.41 L274.05,165.51 L275.33,165.60 L276.60,165.69 L277.88,165.78 L279.15,165.87 L280.43,165.95 L281.70,166.03 L282.98,166.10 L284.25,166.18 L285.52,166.25 L286.80,166.32 L288.08,166.38 L289.35,166.44 L290.62,166.51 L291.90,166.56 L293.17,166.62 L294.45,166.67 L295.73,166.73 L297.00,166.78 L298.28,166.82 L299.55,166.87 L300.82,166.91 L302.10,166.96 L303.38,167.00 L304.65,167.04 L305.92,167.08 L307.20,167.11 L308.47,167.15 L309.75,167.18 L311.03,167.21 L312.30,167.24 L313.58,167.27 L314.85,167.30 L316.12,167.33 L317.40,167.36 L318.68,167.38 L319.95,167.41 L321.22,167.43 L322.50,167.45 L323.78,167.48 L325.05,167.50 L326.32,167.52 L327.60,167.54 L328.88,167.56 L330.15,167.57 L331.43,167.59 L332.70,167.61 L333.97,167.62 L335.25,167.64 L336.53,167.65 L337.80,167.67 L339.07,167.68 L340.35,167.69 L341.62,167.71 L342.90,167.72 L344.17,167.73 L345.45,167.74 L346.72,167.75 L348.00,167.76 L348.00,168.00 L42.00,168.00 Z"/>
+        <path class="ln" d="M42.00,168.00 L43.27,167.36 L44.55,165.56 L45.83,162.78 L47.10,159.17 L48.38,154.87 L49.65,150.02 L50.92,144.72 L52.20,139.07 L53.48,133.18 L54.75,127.10 L56.02,120.93 L57.30,114.71 L58.58,108.51 L59.85,102.37 L61.12,96.34 L62.40,90.44 L63.67,84.71 L64.95,79.18 L66.22,73.87 L67.50,68.78 L68.78,63.95 L70.05,59.37 L71.33,55.06 L72.60,51.03 L73.88,47.26 L75.15,43.78 L76.43,40.58 L77.70,37.65 L78.97,34.99 L80.25,32.60 L81.53,30.47 L82.80,28.60 L84.07,26.99 L85.35,25.61 L86.62,24.47 L87.90,23.56 L89.18,22.86 L90.45,22.38 L91.72,22.09 L93.00,22.00 L94.27,22.09 L95.55,22.35 L96.83,22.78 L98.10,23.36 L99.38,24.09 L100.65,24.96 L101.92,25.96 L103.20,27.07 L104.48,28.30 L105.75,29.64 L107.02,31.07 L108.30,32.59 L109.58,34.19 L110.85,35.87 L112.12,37.61 L113.40,39.42 L114.68,41.28 L115.95,43.20 L117.23,45.16 L118.50,47.15 L119.77,49.18 L121.05,51.24 L122.33,53.32 L123.60,55.43 L124.88,57.54 L126.15,59.67 L127.42,61.81 L128.70,63.95 L129.98,66.09 L131.25,68.23 L132.53,70.37 L133.80,72.49 L135.07,74.61 L136.35,76.72 L137.62,78.81 L138.90,80.88 L140.18,82.93 L141.45,84.96 L142.72,86.98 L144.00,88.96 L145.27,90.93 L146.55,92.87 L147.83,94.78 L149.10,96.66 L150.38,98.51 L151.65,100.34 L152.93,102.13 L154.20,103.90 L155.48,105.63 L156.75,107.33 L158.02,109.00 L159.30,110.64 L160.57,112.24 L161.85,113.81 L163.12,115.35 L164.40,116.86 L165.67,118.34 L166.95,119.78 L168.23,121.19 L169.50,122.57 L170.78,123.92 L172.05,125.23 L173.33,126.52 L174.60,127.77 L175.88,128.99 L177.15,130.18 L178.42,131.35 L179.70,132.48 L180.97,133.58 L182.25,134.66 L183.52,135.71 L184.80,136.72 L186.08,137.72 L187.35,138.68 L188.62,139.62 L189.90,140.53 L191.17,141.42 L192.45,142.28 L193.72,143.12 L195.00,143.93 L196.28,144.72 L197.55,145.49 L198.83,146.24 L200.10,146.96 L201.38,147.66 L202.65,148.34 L203.93,149.00 L205.20,149.64 L206.47,150.27 L207.75,150.87 L209.02,151.45 L210.30,152.02 L211.58,152.57 L212.85,153.10 L214.12,153.61 L215.40,154.11 L216.67,154.59 L217.95,155.06 L219.23,155.51 L220.50,155.95 L221.78,156.37 L223.05,156.78 L224.32,157.18 L225.60,157.56 L226.88,157.93 L228.15,158.29 L229.42,158.64 L230.70,158.97 L231.97,159.30 L233.25,159.61 L234.53,159.91 L235.80,160.20 L237.08,160.49 L238.35,160.76 L239.62,161.02 L240.90,161.28 L242.18,161.52 L243.45,161.76 L244.72,161.99 L246.00,162.21 L247.28,162.42 L248.55,162.63 L249.83,162.83 L251.10,163.02 L252.38,163.20 L253.65,163.38 L254.92,163.55 L256.20,163.72 L257.48,163.88 L258.75,164.04 L260.02,164.18 L261.30,164.33 L262.57,164.47 L263.85,164.60 L265.12,164.73 L266.40,164.85 L267.67,164.97 L268.95,165.09 L270.22,165.20 L271.50,165.30 L272.78,165.41 L274.05,165.51 L275.33,165.60 L276.60,165.69 L277.88,165.78 L279.15,165.87 L280.43,165.95 L281.70,166.03 L282.98,166.10 L284.25,166.18 L285.52,166.25 L286.80,166.32 L288.08,166.38 L289.35,166.44 L290.62,166.51 L291.90,166.56 L293.17,166.62 L294.45,166.67 L295.73,166.73 L297.00,166.78 L298.28,166.82 L299.55,166.87 L300.82,166.91 L302.10,166.96 L303.38,167.00 L304.65,167.04 L305.92,167.08 L307.20,167.11 L308.47,167.15 L309.75,167.18 L311.03,167.21 L312.30,167.24 L313.58,167.27 L314.85,167.30 L316.12,167.33 L317.40,167.36 L318.68,167.38 L319.95,167.41 L321.22,167.43 L322.50,167.45 L323.78,167.48 L325.05,167.50 L326.32,167.52 L327.60,167.54 L328.88,167.56 L330.15,167.57 L331.43,167.59 L332.70,167.61 L333.97,167.62 L335.25,167.64 L336.53,167.65 L337.80,167.67 L339.07,167.68 L340.35,167.69 L341.62,167.71 L342.90,167.72 L344.17,167.73 L345.45,167.74 L346.72,167.75 L348.00,167.76"/>
+        <line class="ax" x1="42" y1="168" x2="348" y2="168"/>
+        <line class="gl" x1="93" y1="22" x2="93" y2="168" stroke-dasharray="3 4"/>
+        <text x="186" y="40">peak at r = 1 a₀</text>
+        <text x="186" y="56" fill="#4FCBFF">= 0.053 nm</text>
+        <text x="42.0" y="184" text-anchor="middle">0</text><text x="93.0" y="184" text-anchor="middle">1</text><text x="144.0" y="184" text-anchor="middle">2</text><text x="195.0" y="184" text-anchor="middle">3</text><text x="246.0" y="184" text-anchor="middle">4</text><text x="297.0" y="184" text-anchor="middle">5</text><text x="348.0" y="184" text-anchor="middle">6</text>
+        <text x="195" y="204" text-anchor="middle">distance from nucleus (a₀)</text>
+      </svg>
+      <p class="small dim">The chance of finding a 1s electron at distance r: zero at the nucleus, a peak at
+      one Bohr radius, and never quite zero again.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 4 ───────────────────────────── Q2 the orbital -->
+<section class="slide" aria-label="Question two: an orbital is a ninety percent zone">
+  <div class="cols wide-r">
+    <div>
+      <div class="shot sq"><img src="img/cloud_90.jpg" alt="A 1s electron cloud with a dashed boundary enclosing ninety percent of it"></div>
+      <p class="cap">The 90% boundary of a 1s orbital</p>
+    </div>
+    <div class="stack">
+      <p class="eyebrow">Question 2 · 1.6.3</p>
+      <h2>An orbital is a<br>90% zone</h2>
+      <p class="dim">An <strong>atomic orbital</strong> is a region of space around the nucleus where an
+      electron is very likely to be found — the volume holding about 90% of its probability cloud. Each
+      orbital holds at most two electrons.</p>
+      <div style="display:grid;grid-template-columns:auto 1fr;gap:1.8cqw;align-items:center">
+        <span class="stat" style="color:var(--cy)">90%</span>
+        <p class="small dim">of the probability sits inside that dashed line. The other tenth is spread
+        beyond it — so the cloud has no hard edge.</p>
+      </div>
+      <ul class="list">
+        <li><span class="mk">—</span><span>Not a path. Not an orbit. A <em>region</em>.</span></li>
+        <li><span class="mk">—</span><span><span class="k">n</span> sets its size, <span class="k">ℓ</span> its shape, <span class="k">mℓ</span> which way it points.</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 5 ───────────────────────────── our labelled diagram -->
+<section class="slide" aria-label="Our labelled diagram of a probability cloud">
+  <div class="cols wide-r">
+    <div>
+      <div class="dgm">
+        <img src="img/cloud_1s.jpg" alt="A glowing spherical electron probability cloud around a nucleus, labelled one to four">
+        <span class="ring"></span>
+        <span class="bdg" style="left:50%;top:50%">1</span>
+        <span class="bdg" style="left:36%;top:33%">2</span>
+        <span class="bdg" style="left:76%;top:26%">3</span>
+        <span class="bdg" style="left:19%;top:76%">4</span>
+      </div>
+      <p class="cap">Hydrogen 1s — drawn to show probability, not a path</p>
+    </div>
+    <div class="stack">
+      <p class="eyebrow">Question 2 · our diagram</p>
+      <h2>Draw it, then<br>label it</h2>
+      <ul class="legend">
+        <li><span class="n">1</span><span><strong>Nucleus.</strong> Protons and neutrons, at the centre.</span></li>
+        <li><span class="n">2</span><span><strong>High-probability region.</strong> Brightest and most crowded — found here most often. For 1s this peaks at <span class="k">r = 0.053 nm</span>.</span></li>
+        <li><span class="n">3</span><span><strong>The 90% boundary — the orbital.</strong> A line we choose, not a wall the electron hits.</span></li>
+        <li><span class="n">4</span><span><strong>Low-probability tail.</strong> The last tenth, fading out — so the atom has no sharp edge.</span></li>
+      </ul>
+      <p class="small dim">Notice what is missing: no line anywhere for the electron to travel along.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 6 ───────────────────────────── Q3 the two models -->
+<section class="slide" aria-label="Question three: how the quantum mechanical model differs from the Bohr model">
+  <div class="bg"><video src="vid/04_n_grows.mp4" autoplay muted loop playsinline></video></div>
+  <div class="stack" style="gap:1.7cqw">
+    <p class="eyebrow">Question 3 · 1.5.5 against 1.6</p>
+    <h2>Bohr model against the quantum mechanical model</h2>
+    <table class="cmp">
+      <tr><th>Compare</th><th>Bohr model · 1913</th><th>Quantum mechanical model</th></tr>
+      <tr><td>Where the electron is</td><td>A fixed circular orbit, known radius</td><td>Somewhere in a cloud of probability</td></tr>
+      <tr><td>Its motion</td><td>A definite path, like a planet</td><td>No path at all — a standing wave</td></tr>
+      <tr><td>Position and momentum</td><td>Both exact at the same time</td><td>Cannot both be exact (Heisenberg)</td></tr>
+      <tr><td>Energy levels</td><td>Assumed, to fit the spectrum</td><td>Falls out of Schrödinger's equation</td></tr>
+      <tr><td>Shape information</td><td>None — every orbit is a circle</td><td>Shapes: s sphere, p dumbbell, d cloverleaf</td></tr>
+      <tr><td>Works for</td><td>H, He⁺, Li²⁺ only</td><td>Every atom, plus line splitting</td></tr>
+    </table>
+    <div class="note">
+      <span class="tag">In one sentence</span>
+      <p class="small dim">Bohr told us <em>where the electron goes</em>. This model tells us <em>where it is
+      likely to be found</em>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 7 ───────────────────────────── no fixed paths -->
+<section class="slide" aria-label="Why electrons do not follow fixed classical paths">
+  <div class="cols wide-l">
+    <div class="stack">
+      <p class="eyebrow">Our presentation task</p>
+      <h2>Why there is<br>no fixed path</h2>
+      <ul class="list">
+        <li><span class="mk">01</span><span><strong>A path needs two exact numbers at once</strong> — position and momentum. Heisenberg forbids that pair: <span class="k">Δx · Δp ≥ h/4π</span>.</span></li>
+        <li><span class="mk">02</span><span><strong>The electron is wavelike.</strong> <span class="k">λ = h/mv</span> gives 0.73 nm at 1.00 × 10⁶ m/s — fourteen times the atom's radius. A wave that big has no single address.</span></li>
+        <li><span class="mk">03</span><span><strong>A classical orbit would collapse.</strong> A charged particle on a curved path radiates energy and would spiral into the nucleus. Atoms are stable.</span></li>
+      </ul>
+      <div class="note">
+        <span class="tag">So the question changes</span>
+        <p class="small dim">Not “where is it going?” but “where is it most likely to be found?” That answer
+        is the orbital.</p>
+      </div>
+    </div>
+    <div>
+      <div class="clip vid"><video src="vid/00_classic_atom.mp4" autoplay muted loop playsinline></video></div>
+      <p class="cap">The picture on every science logo — and not what an atom is</p>
+    </div>
+  </div>
+</section>
+
+<!-- 8 ───────────────────────────── quantum numbers -->
+<section class="slide" aria-label="Four numbers, one electron">
+  <div class="bg"><video src="vid/03_cloud_to_numbers.mp4" autoplay muted loop playsinline></video></div>
+  <div class="stack" style="gap:1.9cqw">
+    <p class="eyebrow">1.6.2 · quantum numbers · groups 3, 4 and 5 go deeper</p>
+    <h2>Four numbers, one electron</h2>
+    <div class="row">
+      <div class="card"><span class="glyph" style="color:var(--cy)">n</span><span class="lab">Size &amp; energy</span>
+        <p class="small dim">Which shell. 1, 2, 3 …</p></div>
+      <div class="card"><span class="glyph" style="color:var(--vi)">ℓ</span><span class="lab">Shape</span>
+        <p class="small dim">0 up to n−1.<br>0=s 1=p 2=d 3=f</p></div>
+      <div class="card"><span class="glyph" style="color:var(--am)">m<sub>ℓ</sub></span><span class="lab">Orientation</span>
+        <p class="small dim">−ℓ … +ℓ, so 2ℓ+1 per subshell</p></div>
+      <div class="card"><span class="glyph" style="color:var(--gr)">m<sub>s</sub></span><span class="lab">Spin</span>
+        <p class="small dim">+½ or −½. Two per orbital</p></div>
+    </div>
+    <div class="cols" style="gap:1.5cqw">
+      <div class="note"><span class="tag">Counting</span>
+        <p class="small dim">Shell n holds <span class="k">n²</span> orbitals. For n = 3: one 3s, three 3p,
+        five 3d — nine orbitals, eighteen electrons.</p></div>
+      <div class="note" style="border-color:var(--vi)"><span class="tag" style="color:var(--vi)">Pauli's exclusion principle</span>
+        <p class="small dim">No two electrons in an atom share all four numbers. That is why an orbital
+        stops at two.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 9 ───────────────────────────── s orbitals -->
+<section class="slide" aria-label="s orbitals and the gaps inside them">
+  <div class="cols wide-r">
+    <div>
+      <div class="clip vid"><video src="vid/05_s_morph.mp4" autoplay muted loop playsinline></video></div>
+      <p class="cap">Orbitals growing with n, then 1s opening into 2s</p>
+    </div>
+    <div class="stack">
+      <p class="eyebrow">ℓ = 0 · one orbital</p>
+      <h2>s orbitals are spheres</h2>
+      <p class="dim">Every s orbital is a sphere, whatever its n. The electron is equally likely in every
+      direction, so only its distance matters. 1s &lt; 2s &lt; 3s in size.</p>
+      <div class="card">
+        <span class="lab">The gaps inside — nodes</span>
+        <p class="small dim">The dark ring inside 2s is a <strong>node</strong>: a surface where ψ² is exactly
+        zero. 2s has one, 3s has two.</p>
+        <p class="small dim">The strange part: the electron is found on both sides of it and <em>never on
+        it</em> — it was never travelling.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 10 ───────────────────────────── p orbitals -->
+<section class="slide" aria-label="p orbitals">
+  <div class="cols wide-r">
+    <div class="stack" style="gap:1.2cqw">
+      <div class="clip vid"><video src="vid/07_p_morph.mp4" autoplay muted loop playsinline></video></div>
+      <p class="cap">The sphere pinching into a dumbbell, then the real 2p clouds</p>
+      <div class="row" style="gap:1cqw">
+        <div><div class="shot sq"><img src="img/px.jpg" alt="2p x orbital"></div><p class="cap" style="color:var(--am)">p<sub>x</sub></p></div>
+        <div><div class="shot sq"><img src="img/py.jpg" alt="2p y orbital"></div><p class="cap" style="color:var(--vi)">p<sub>y</sub></p></div>
+        <div><div class="shot sq"><img src="img/pz.jpg" alt="2p z orbital"></div><p class="cap" style="color:var(--cy)">p<sub>z</sub></p></div>
+      </div>
+    </div>
+    <div class="stack">
+      <p class="eyebrow">ℓ = 1 · three orbitals</p>
+      <h2>p orbitals are dumbbells</h2>
+      <p class="dim">Two lobes with the nucleus between them, pointing along three perpendicular axes. The
+      flat plane through the middle is a node, so the electron is never found at the nucleus. A p subshell
+      holds six electrons.</p>
+      <div class="note" style="border-color:var(--am)">
+        <span class="tag" style="color:var(--am)">Why molecules have angles</span>
+        <p class="small dim">Bonds form where orbitals point. Pure p orbitals sit at 90°, yet water's bonds
+        are at <strong>104.5°</strong> and methane's at <strong>109.5°</strong> — the first sign that orbitals
+        mix before they bond.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 11 ───────────────────────────── d and f -->
+<section class="slide" aria-label="d and f orbitals">
+  <div class="bg left"><video src="vid/09_orbital_zoo.mp4" data-rate="0.5" autoplay muted loop playsinline></video></div>
+  <div class="cols wide-r">
+    <div></div>
+    <div class="stack">
+      <p class="eyebrow">ℓ = 2 and 3 · the rest of the zoo</p>
+      <h2>d and f get complicated</h2>
+      <div class="row" style="gap:1.2cqw">
+        <div class="card"><span class="num" style="color:var(--vi)">5</span><span class="lab">d orbitals · ℓ = 2</span>
+          <p class="small dim">From n = 3. Holds 10 electrons.</p></div>
+        <div class="card"><span class="num" style="color:var(--am)">7</span><span class="lab">f orbitals · ℓ = 3</span>
+          <p class="small dim">From n = 4. Holds 14 electrons.</p></div>
+      </div>
+      <p class="small dim">Four of the five d orbitals are cloverleaves; the fifth, <span class="k">d<sub>z²</sub></span>,
+      has a ring round its waist. Nobody designed these shapes — they fall out of the maths.</p>
+      <div class="note" style="border-color:var(--vi)">
+        <span class="tag" style="color:var(--vi)">Where you have already seen them</span>
+        <p class="small dim">Copper(II) sulfate is blue and nickel(II) sulfate green because the metal's five
+        d orbitals stop being equal in energy. That colour is a d orbital you can see.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 12 ───────────────────────────── big idea -->
+<section class="slide" aria-label="The big idea">
+  <div class="cols wide-l">
+    <div class="stack">
+      <p class="eyebrow">Recap · the main scientific idea</p>
+      <h2>The big idea</h2>
+      <ul class="list">
+        <li><span class="mk">01</span><span><span class="k">ψ²</span> gives the probability of finding an electron in a region.</span></li>
+        <li><span class="mk">02</span><span>The cloud is that drawn: dense means likely.</span></li>
+        <li><span class="mk">03</span><span>An orbital holds about 90% of that probability.</span></li>
+        <li><span class="mk">04</span><span>No exact position and momentum together, so no path to draw.</span></li>
+      </ul>
+      <div class="note">
+        <span class="tag">Not just a model</span>
+        <p class="small dim">X-rays fired at a crystal scatter off electrons, and the map that comes back is
+        electron density — these clouds, measured. Every structure ever solved is a picture of ψ².</p>
+      </div>
+      <p style="font-size:var(--h);font-weight:300">Orbitals are about <em>probability</em>, not paths.</p>
+    </div>
+    <div class="stack" style="gap:.9cqw">
+      <div class="clip vid"><video src="vid/08_d_orbitals.mp4" autoplay muted loop playsinline></video></div>
+      <p class="cap">The five 3d orbitals, one after another</p>
+      <div class="row" style="gap:1cqw;max-width:80%;margin-inline:auto">
+        <div><div class="shot sq"><img src="img/dz2.jpg" alt="The d z squared orbital, two lobes with a ring around its waist"></div><p class="cap" style="color:var(--vi)">d<sub>z²</sub></p></div>
+        <div><div class="shot sq"><img src="img/nucleus.jpg" alt="A single bright point of light representing the nucleus"></div><p class="cap">the nucleus</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 13 ───────────────────────────── questions for the class -->
+<section class="slide" aria-label="Two questions for the class">
+  <div class="bg left"><video src="vid/06_sphere_to_dumbbell.mp4" autoplay muted loop playsinline></video></div>
+  <div class="cols wide-r">
+    <div></div>
+    <div class="stack">
+      <p class="eyebrow">Over to you</p>
+      <h2>Two questions for the class</h2>
+      <details class="qa">
+        <summary>
+          <span class="lab">Question 1</span>
+          <span class="q">If the cloud never ends, why draw the orbital boundary at 90% and not 100%?</span>
+          <span class="hint shut">Click to reveal our answer</span>
+          <span class="hint open">Our answer</span>
+        </summary>
+        <div class="ans">
+          <p class="small dim">A 100% boundary would have to be infinitely large, because ψ² never quite
+          reaches zero. 90% still shows the orbital's real size and shape.</p>
+        </div>
+      </details>
+      <details class="qa">
+        <summary>
+          <span class="lab">Question 2</span>
+          <span class="q">Bohr's model gives the right energy levels for hydrogen. So why did chemists
+          replace it anyway?</span>
+          <span class="hint shut">Click to reveal our answer</span>
+          <span class="hint open">Our answer</span>
+        </summary>
+        <div class="ans">
+          <p class="small dim">It fails for every atom with more than one electron, it cannot explain spectral
+          lines splitting in a magnetic field, and it needs an exact position and momentum at once — which
+          the uncertainty principle rules out.</p>
+        </div>
+      </details>
+    </div>
+  </div>
+</section>
+
+
+</div>
+</div>
+
+<nav class="hud" aria-label="Slide navigation">
+  <button id="prev" type="button" aria-label="Previous slide">‹</button>
+  <span class="count" id="count">01 / 13</span>
+  <div class="dots" id="dots" role="tablist" aria-label="Slides"></div>
+  <button id="next" type="button" aria-label="Next slide">›</button>
+  <button id="fs" type="button" aria-label="Toggle full screen">⤢</button>
+</nav>
+
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var dots   = document.getElementById('dots');
+  var count  = document.getElementById('count');
+  var stage  = document.getElementById('stage');
+  var deckMode = window.matchMedia('(min-width:761px)');
+  var reduce   = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var i = 0, moving = false;
+
+  slides.forEach(function(s, n){
+    var b = document.createElement('button');
+    b.className = 'dot'; b.type = 'button'; b.setAttribute('role','tab');
+    b.setAttribute('aria-label','Slide ' + (n+1));
+    b.addEventListener('click', function(){ go(n); });
+    dots.appendChild(b);
+  });
+
+  function pad(n){ return (n < 10 ? '0' : '') + n; }
+  function mediaEl(n){ return slides[n].querySelector('.bg,.clip,.shot,.dgm'); }
+
+  function playOnly(n){
+    slides.forEach(function(s, k){
+      Array.prototype.forEach.call(s.querySelectorAll('video'), function(v){
+        /* data-rate slows a clip down where the change it shows is worth watching. */
+        try { v.playbackRate = parseFloat(v.getAttribute('data-rate')) || 1; } catch(e){}
+        if (k === n || !deckMode.matches){ var p = v.play(); if (p && p.catch) p.catch(function(){}); }
+        else { v.pause(); }
+      });
+    });
+  }
+
+  /* Every clip starts from its first frame when you arrive, so the change it shows
+     — the cloud slicing open, the orbital resolving into its four numbers, the
+     sphere pinching into a dumbbell — happens on entry instead of somewhere in the
+     middle of a loop. */
+  function restart(n){
+    Array.prototype.forEach.call(slides[n].querySelectorAll('video'), function(v){
+      try { v.currentTime = 0; } catch(e){}
+    });
+  }
+
+  function hud(n){
+    count.textContent = pad(n+1) + ' / ' + pad(slides.length);
+    Array.prototype.forEach.call(dots.children, function(d, k){
+      d.setAttribute('aria-current', k === n ? 'true' : 'false');
+    });
+  }
+
+  /* The cloud is the one thing two slides share, so it is the thing that moves.
+     Measure where it sat, put the new one there, then release it to its new place. */
+  function carry(a, el){
+    if (!a || !el || reduce.matches) return;
+    var b = el.getBoundingClientRect();
+    if (!a.width || !b.width) return;
+    var dx = a.left - b.left, dy = a.top - b.top,
+        sx = a.width / b.width, sy = a.height / b.height;
+    if (Math.abs(dx) < 2 && Math.abs(dy) < 2 && Math.abs(sx-1) < .02 && Math.abs(sy-1) < .02) return;
+    el.style.transformOrigin = '0 0';
+    el.style.transition = 'none';
+    el.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(' + sx + ',' + sy + ')';
+    el.getBoundingClientRect();
+    el.style.transition = 'transform .72s cubic-bezier(.22,1,.36,1)';
+    el.style.transform = 'none';
+    setTimeout(function(){
+      el.style.transition = ''; el.style.transform = ''; el.style.transformOrigin = '';
+    }, 800);
+  }
+
+  function go(n){
+    n = Math.max(0, Math.min(slides.length - 1, n));
+    if (!deckMode.matches){
+      i = n;
+      slides[n].scrollIntoView({behavior:'smooth', block:'start'});
+      hud(n); restart(n); playOnly(n);
+      return;
+    }
+    if (n === i || moving) return;
+    moving = true;
+    var from = i;
+    var oldM = mediaEl(from);
+    var a = oldM ? oldM.getBoundingClientRect() : null;
+
+    slides[from].classList.remove('on');
+    slides[from].classList.add('out');
+    setTimeout(function(){ slides[from].classList.remove('out'); }, 400);
+
+    i = n; hud(n);
+    slides[n].classList.add('on');
+    restart(n); playOnly(n);
+    carry(a, mediaEl(n));
+    setTimeout(function(){ moving = false; }, 430);
+  }
+
+  function sync(){
+    if (deckMode.matches){ slides.forEach(function(s,k){ s.classList.toggle('on', k === i); }); }
+    else { slides.forEach(function(s){ s.classList.add('on'); }); }
+    playOnly(i);
+  }
+  if (deckMode.addEventListener) deckMode.addEventListener('change', sync);
+
+  document.getElementById('next').addEventListener('click', function(){ go(i+1); });
+  document.getElementById('prev').addEventListener('click', function(){ go(i-1); });
+
+  var fsBtn = document.getElementById('fs');
+  function theater(on){
+    document.body.classList.toggle('theater', on);
+    fsBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    fsBtn.textContent = on ? '⤡' : '⤢';
+    if (on && !document.fullscreenElement && document.documentElement.requestFullscreen){
+      var p = document.documentElement.requestFullscreen();
+      if (p && p.catch) p.catch(function(){});   // refused? the CSS theater still fills the window
+    } else if (!on && document.fullscreenElement && document.exitFullscreen){
+      var q = document.exitFullscreen(); if (q && q.catch) q.catch(function(){});
+    }
+  }
+  fsBtn.addEventListener('click', function(){
+    theater(!document.body.classList.contains('theater'));
+  });
+  document.addEventListener('fullscreenchange', function(){
+    if (!document.fullscreenElement) theater(false);
+  });
+
+  document.addEventListener('keydown', function(e){
+    /* Space or Enter on a focused question belongs to the question, not to the deck. */
+    if (e.target && e.target.closest && e.target.closest('summary,details')) return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); go(i+1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(i-1); }
+    else if (e.key === 'Home') { e.preventDefault(); go(0); }
+    else if (e.key === 'End') { e.preventDefault(); go(slides.length-1); }
+    else if (e.key === 'Escape') { theater(false); }
+    else if (e.key === 'f' || e.key === 'F') { theater(!document.body.classList.contains('theater')); }
+  });
+
+  var x0 = null;
+  stage.addEventListener('touchstart', function(e){ x0 = e.changedTouches[0].clientX; }, {passive:true});
+  stage.addEventListener('touchend', function(e){
+    if (x0 === null || !deckMode.matches) return;
+    var dx = e.changedTouches[0].clientX - x0;
+    if (Math.abs(dx) > 48) go(i + (dx < 0 ? 1 : -1));
+    x0 = null;
+  }, {passive:true});
+
+  stage.addEventListener('click', function(e){
+    /* A click on a question opens its answer; it must not also turn the page. */
+    if (!deckMode.matches || e.target.closest('a,button,summary,details')) return;
+    go(i + (e.clientX - stage.getBoundingClientRect().left > stage.clientWidth * 0.5 ? 1 : -1));
+  });
+
+  sync(); hud(0); restart(0);
+})();
+</script>

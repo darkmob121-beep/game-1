@@ -1,0 +1,1164 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10151f">
+  <title>Last Word Standing — Hangman</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --page: #10151f;
+      --panel: #1a2230;
+      --panel-raised: #202b3b;
+      --line: #344154;
+      --text: #f3f5f7;
+      --muted: #aab5c5;
+      --accent: #f0b35a;
+      --accent-strong: #ffd58f;
+      --green: #87d6ae;
+      --red: #ff8d88;
+      --wood: #d59a55;
+      --shadow: 0 22px 70px rgb(0 0 0 / 28%);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif;
+      background: var(--page);
+      color: var(--text);
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      background:
+        radial-gradient(ellipse at 50% -20%, rgb(57 78 106 / 45%), transparent 62%),
+        var(--page);
+    }
+
+    button,
+    select {
+      font: inherit;
+    }
+
+    button {
+      color: inherit;
+    }
+
+    button:focus-visible,
+    select:focus-visible {
+      outline: 3px solid var(--accent-strong);
+      outline-offset: 3px;
+    }
+
+    .shell {
+      width: min(1120px, calc(100% - 40px));
+      margin-inline: auto;
+      padding-block: 30px 24px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 44px;
+      height: 44px;
+      place-items: center;
+      border: 1px solid rgb(240 179 90 / 45%);
+      border-radius: 14px;
+      background: rgb(240 179 90 / 10%);
+      color: var(--accent-strong);
+      font-size: 25px;
+    }
+
+    .brand-name {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 750;
+      letter-spacing: .04em;
+    }
+
+    .brand-caption {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .best-score {
+      padding: 9px 13px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .best-score strong {
+      margin-left: 5px;
+      color: var(--accent-strong);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .game-card {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: linear-gradient(145deg, rgb(32 43 59 / 96%), rgb(23 31 44 / 98%));
+      box-shadow: var(--shadow);
+    }
+
+    .game-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 22px 28px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .game-title {
+      margin: 0;
+      font-size: clamp(20px, 3vw, 27px);
+      letter-spacing: -.035em;
+    }
+
+    .round-tag {
+      padding: 7px 11px;
+      border: 1px solid rgb(240 179 90 / 35%);
+      border-radius: 999px;
+      background: rgb(240 179 90 / 8%);
+      color: var(--accent-strong);
+      font-size: 12px;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    .game-layout {
+      display: grid;
+      grid-template-columns: minmax(250px, .85fr) minmax(0, 1.15fr);
+      min-height: 500px;
+    }
+
+    .scene {
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      gap: 18px;
+      padding: 28px;
+      border-right: 1px solid var(--line);
+      background:
+        radial-gradient(ellipse at 50% 80%, rgb(240 179 90 / 8%), transparent 56%),
+        rgb(9 13 20 / 22%);
+    }
+
+    .scene-label {
+      margin: 0;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    .hangman {
+      width: min(100%, 320px);
+      height: auto;
+      overflow: visible;
+    }
+
+    .scaffold {
+      fill: none;
+      stroke: var(--wood);
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 8;
+    }
+
+    .rope {
+      fill: none;
+      stroke: #b8c2cf;
+      stroke-linecap: round;
+      stroke-width: 4;
+    }
+
+    .body-part {
+      fill: none;
+      stroke: var(--text);
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 5;
+      opacity: 0;
+      transition: opacity .25s ease, stroke .25s ease;
+    }
+
+    .body-part.visible {
+      opacity: 1;
+      animation: appear .32s ease-out both;
+    }
+
+    .face {
+      fill: none;
+      stroke: var(--red);
+      stroke-linecap: round;
+      stroke-width: 2.5;
+      opacity: 0;
+    }
+
+    .face.visible {
+      opacity: 1;
+    }
+
+    @keyframes appear {
+      from {
+        opacity: 0;
+        transform: translateY(-5px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .scene-caption {
+      min-height: 22px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+    }
+
+    .play-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px clamp(20px, 4vw, 44px);
+    }
+
+    .status-row {
+      display: flex;
+      width: 100%;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .category-label {
+      color: var(--accent-strong);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+
+    .lives {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .heart {
+      color: var(--red);
+      font-size: 17px;
+    }
+
+    .word {
+      display: flex;
+      min-height: 74px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin: 30px 0 10px;
+    }
+
+    .letter-slot {
+      display: grid;
+      width: clamp(27px, 5vw, 42px);
+      height: 48px;
+      place-items: center;
+      border-bottom: 3px solid #59677a;
+      color: var(--text);
+      font-size: clamp(20px, 3vw, 27px);
+      font-weight: 750;
+      text-transform: uppercase;
+    }
+
+    .letter-slot.revealed {
+      border-color: var(--accent);
+      animation: reveal .25s ease-out both;
+    }
+
+    @keyframes reveal {
+      from {
+        color: var(--accent);
+        transform: translateY(-5px);
+      }
+      to {
+        color: var(--text);
+        transform: translateY(0);
+      }
+    }
+
+    .hint-box {
+      display: flex;
+      width: 100%;
+      min-height: 48px;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      padding: 11px 14px;
+      border: 1px solid rgb(170 181 197 / 16%);
+      border-radius: 12px;
+      background: rgb(255 255 255 / 3%);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+      text-align: center;
+    }
+
+    .hint-box strong {
+      color: var(--text);
+    }
+
+    .keyboard {
+      display: grid;
+      width: 100%;
+      grid-template-columns: repeat(7, minmax(30px, 1fr));
+      gap: 8px;
+    }
+
+    .key {
+      min-height: 42px;
+      border: 1px solid #46546a;
+      border-radius: 10px;
+      background: #283448;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .15s ease, border-color .15s ease, transform .15s ease;
+    }
+
+    .key:hover:not(:disabled) {
+      transform: translateY(-2px);
+      border-color: var(--accent);
+      background: #35445b;
+    }
+
+    .key:disabled {
+      color: #7e8998;
+      cursor: not-allowed;
+    }
+
+    .key.correct:disabled {
+      border-color: rgb(135 214 174 / 38%);
+      background: rgb(58 124 89 / 34%);
+      color: var(--green);
+      opacity: 1;
+    }
+
+    .key.wrong:disabled {
+      border-color: rgb(255 141 136 / 22%);
+      background: rgb(125 55 59 / 27%);
+      color: #bd8585;
+      opacity: .75;
+    }
+
+    .message {
+      min-height: 24px;
+      margin: 16px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+    }
+
+    .message.success {
+      color: var(--green);
+    }
+
+    .message.error {
+      color: var(--red);
+    }
+
+    .action-row {
+      display: flex;
+      width: 100%;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .button {
+      min-height: 42px;
+      padding: 0 16px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: transparent;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 650;
+      cursor: pointer;
+      transition: background .15s ease, border-color .15s ease;
+    }
+
+    .button:hover:not(:disabled) {
+      border-color: #66758b;
+      background: rgb(255 255 255 / 5%);
+    }
+
+    .button.primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #1a1c20;
+    }
+
+    .button.primary:hover:not(:disabled) {
+      border-color: var(--accent-strong);
+      background: var(--accent-strong);
+    }
+
+    .button:disabled {
+      opacity: .48;
+      cursor: not-allowed;
+    }
+
+    .settings {
+      display: grid;
+      width: 100%;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: auto;
+      padding-top: 24px;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .field select {
+      width: 100%;
+      min-height: 40px;
+      padding: 0 11px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel-raised);
+      color: var(--text);
+      font-size: 13px;
+      letter-spacing: normal;
+      text-transform: none;
+    }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 15px 28px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .footer kbd {
+      padding: 2px 6px;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      background: rgb(255 255 255 / 4%);
+      color: var(--text);
+      font: inherit;
+    }
+
+    .storage-status {
+      color: var(--muted);
+    }
+
+    .storage-status.warning {
+      color: var(--red);
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      clip-path: inset(50%);
+    }
+
+    @media (max-width: 720px) {
+      .shell {
+        width: min(100% - 24px, 560px);
+        padding-top: 16px;
+      }
+
+      .topbar {
+        margin-bottom: 14px;
+      }
+
+      .game-header {
+        padding: 17px 18px;
+      }
+
+      .game-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .scene {
+        gap: 8px;
+        padding: 18px 20px 12px;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .hangman {
+        width: min(240px, 70vw);
+        max-height: 220px;
+      }
+
+      .play-area {
+        padding: 22px 18px 24px;
+      }
+
+      .word {
+        margin-top: 20px;
+      }
+
+      .settings {
+        margin-top: 0;
+      }
+
+      .footer {
+        flex-wrap: wrap;
+        padding-inline: 18px;
+      }
+    }
+
+    @media (max-width: 400px) {
+      .brand-caption {
+        font-size: 11px;
+      }
+
+      .best-score {
+        padding: 8px 10px;
+        font-size: 12px;
+      }
+
+      .keyboard {
+        gap: 6px;
+      }
+
+      .key {
+        min-height: 39px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">⌁</div>
+        <div>
+          <p class="brand-name">LAST WORD STANDING</p>
+          <p class="brand-caption">A little suspense. A lot of letters.</p>
+        </div>
+      </div>
+      <div class="best-score" aria-label="Best score">
+        Best score <strong id="best-score">0</strong>
+      </div>
+    </header>
+
+    <section class="game-card" aria-labelledby="game-title">
+      <div class="game-header">
+        <h1 class="game-title" id="game-title">The word is on the line.</h1>
+        <span class="round-tag" id="round-tag">ROUND 1</span>
+      </div>
+
+      <div class="game-layout">
+        <section class="scene" aria-label="Hangman illustration">
+          <p class="scene-label">The last word standing</p>
+          <svg class="hangman" viewBox="0 0 240 250" role="img"
+            aria-labelledby="drawing-title drawing-description">
+            <title id="drawing-title">Hangman drawing</title>
+            <desc id="drawing-description">An empty gallows. One body part appears for each wrong guess.</desc>
+            <g class="scaffold">
+              <path d="M32 224h165" />
+              <path d="M64 224V28h112" />
+              <path d="M64 65l38-37" />
+              <path d="M176 28v25" />
+            </g>
+            <circle class="body-part" data-part="head" cx="176" cy="75" r="22" />
+            <path class="body-part" data-part="body" d="M176 97v57" />
+            <path class="body-part" data-part="left-arm" d="M176 111l-30 28" />
+            <path class="body-part" data-part="right-arm" d="M176 111l30 28" />
+            <path class="body-part" data-part="left-leg" d="M176 154l-27 38" />
+            <path class="body-part" data-part="right-leg" d="M176 154l27 38" />
+            <g class="face" id="face" aria-hidden="true">
+              <path d="M168 72l5 5m0-5l-5 5" />
+              <path d="M180 72l5 5m0-5l-5 5" />
+              <path d="M169 88q7-7 14 0" />
+            </g>
+          </svg>
+          <p class="scene-caption" id="scene-caption">The gallows is quiet. For now.</p>
+        </section>
+
+        <section class="play-area" aria-label="Word puzzle">
+          <div class="status-row">
+            <span class="category-label" id="category-label">Category: —</span>
+            <span class="lives" id="lives" aria-live="polite">
+              <span class="heart" aria-hidden="true">♥</span>
+              <span>6 guesses left</span>
+            </span>
+          </div>
+
+          <div class="word" id="word" aria-label="Secret word"></div>
+          <div class="hint-box" id="hint-box" aria-live="polite">
+            Pick a letter. Your keyboard is ready when you are.
+          </div>
+          <div class="keyboard" id="keyboard" aria-label="Letter keyboard"></div>
+          <p class="message" id="message" role="status" aria-live="polite">
+            Choose a letter to begin.
+          </p>
+
+          <div class="action-row">
+            <button class="button" id="hint-button" type="button">Get a hint · costs 1 life</button>
+            <button class="button" id="give-up-button" type="button">Reveal word</button>
+            <button class="button primary" id="new-game-button" type="button">New game</button>
+          </div>
+
+          <div class="settings">
+            <label class="field" for="category-select">
+              Category
+              <select id="category-select">
+                <option value="random">Surprise me</option>
+                <option value="animals">Animals</option>
+                <option value="food">Food</option>
+                <option value="school">School</option>
+                <option value="space">Space</option>
+                <option value="technology">Technology</option>
+                <option value="nature">Nature</option>
+                <option value="everyday">Everyday things</option>
+                <option value="silly">Silly words</option>
+              </select>
+            </label>
+            <label class="field" for="difficulty-select">
+              Word length
+              <select id="difficulty-select">
+                <option value="easy">Short words</option>
+                <option value="normal" selected>Any length</option>
+                <option value="hard">Long words</option>
+              </select>
+            </label>
+          </div>
+        </section>
+      </div>
+
+      <footer class="footer">
+        <span>Use your keyboard or click the letters.</span>
+        <span class="storage-status" id="storage-status">Best score saves in this browser.</span>
+        <span><kbd>Esc</kbd> new game</span>
+      </footer>
+    </section>
+    <p class="sr-only" id="announcer" aria-live="polite"></p>
+  </main>
+
+  <script>
+    "use strict";
+
+    const WORDS = {
+      animals: [
+        ["alpaca", "A fluffy animal that looks permanently surprised."],
+        ["badger", "A small digger with a black-and-white face."],
+        ["beaver", "A dam-building rodent with an impressive tail."],
+        ["chicken", "A bird that lays eggs and runs like it is late."],
+        ["dolphin", "A clever sea mammal that enjoys showing off."],
+        ["falcon", "A fast bird of prey."],
+        ["ferret", "A long, curious pet that investigates everything."],
+        ["giraffe", "A very tall animal with a built-in lookout."],
+        ["hamster", "A tiny pet that stores snacks in its cheeks."],
+        ["jaguar", "A spotted big cat from the Americas."],
+        ["lemur", "A wide-eyed primate with a striped tail."],
+        ["otter", "A playful swimmer that sometimes holds hands."],
+        ["pigeon", "A city bird that walks like it owns the pavement."],
+        ["raccoon", "A masked nighttime visitor with grabby paws."],
+        ["turtle", "A slow reptile that carries its house."],
+        ["walrus", "A tusked sea mammal that looks grumpy on purpose."]
+      ],
+      food: [
+        ["avocado", "A green fruit that made toast very fashionable."],
+        ["biscuit", "A crunchy snack that vanishes during tea."],
+        ["brownie", "A chocolate square that never lasts long."],
+        ["cabbage", "A leafy vegetable with a strong personality."],
+        ["caramel", "Melted sugar that makes a sticky situation."],
+        ["cheese", "A dairy food with many holes and opinions."],
+        ["cherry", "A small red fruit with a pit."],
+        ["coconut", "A hard-shelled fruit with vacation energy."],
+        ["dumpling", "A little parcel of deliciousness."],
+        ["omelette", "Eggs folded around whatever is in the fridge."],
+        ["pancake", "A flat breakfast that enjoys a syrupy hat."],
+        ["pretzel", "A twisted snack that tied itself in knots."],
+        ["pumpkin", "An orange squash that gets very popular in autumn."],
+        ["sandwich", "A meal held together by two slices of bread."],
+        ["spaghetti", "Long pasta that tangles like headphone wires."],
+        ["waffle", "A breakfast with little squares for holding syrup."]
+      ],
+      school: [
+        ["backpack", "A bag that carries half your life to class."],
+        ["biology", "The study of living things and their weird habits."],
+        ["calculator", "A tiny machine that does the maths you forgot."],
+        ["classroom", "A room full of desks and suspiciously quiet students."],
+        ["compass", "A tool that points north and judges your sense of direction."],
+        ["crayon", "A colourful stick that is not a snack."],
+        ["dictionary", "A book that explains words using more words."],
+        ["eraser", "A small rubber that fixes pencil mistakes."],
+        ["homework", "Schoolwork that somehow follows you home."],
+        ["notebook", "A place for notes, doodles, and secret plans."],
+        ["principal", "The person whose office suddenly seems very far away."],
+        ["science", "The study of how things work and why they fizz."],
+        ["teacher", "A professional question-answerer with a marker."],
+        ["textbook", "A heavy book that contains useful information."],
+        ["whiteboard", "A board where marker ink goes to live briefly."],
+        ["worksheet", "A paper full of questions that need answers."]
+      ],
+      space: [
+        ["asteroid", "A rocky object in space, not a very small planet."],
+        ["comet", "An icy space visitor with a bright tail."],
+        ["eclipse", "When one space object blocks another from view."],
+        ["galaxy", "A huge collection of stars, gas, and cosmic dust."],
+        ["jupiter", "The biggest planet in our solar system."],
+        ["meteor", "A space rock that glows as it enters the atmosphere."],
+        ["moon", "Earth's natural satellite and a night-sky favourite."],
+        ["nebula", "A colourful cloud of gas and dust in space."],
+        ["neptune", "A distant blue planet named after a sea god."],
+        ["planet", "A large round object that orbits a star."],
+        ["rocket", "A vehicle that makes a very dramatic exit from Earth."],
+        ["satellite", "An object that orbits a planet."],
+        ["spaceship", "A vehicle for going places with no roads."],
+        ["telescope", "A tool for seeing faraway things in the sky."],
+        ["universe", "Everything, including all the places we cannot visit yet."],
+        ["venus", "A very bright planet named after a Roman goddess."]
+      ],
+      technology: [
+        ["algorithm", "A set of steps a computer follows."],
+        ["browser", "An app for looking around the internet."],
+        ["keyboard", "A board full of keys that cannot open your front door."],
+        ["laptop", "A portable computer that gets warm during homework."],
+        ["microphone", "A device that makes your voice louder."],
+        ["monitor", "A screen that watches your computer work."],
+        ["password", "A secret word that should not be your pet's name."],
+        ["printer", "A machine that waits until the deadline to complain."],
+        ["program", "Instructions that tell a computer what to do."],
+        ["robot", "A machine that follows instructions and never needs lunch."],
+        ["server", "A computer that provides things to other computers."],
+        ["software", "The programs that make a computer useful."],
+        ["speaker", "A device that turns music into room-filling sound."],
+        ["website", "A place on the internet with pages to explore."],
+        ["wifi", "An invisible connection that vanishes at the worst moment."],
+        ["pixel", "One tiny square of colour on a digital screen."]
+      ],
+      nature: [
+        ["blizzard", "A snowstorm that makes going outside a bad idea."],
+        ["canyon", "A deep valley carved by water over a long time."],
+        ["desert", "A dry place where water is hard to find."],
+        ["forest", "A large area full of trees and wildlife."],
+        ["glacier", "A huge mass of ice that moves very slowly."],
+        ["hurricane", "A powerful storm with very strong winds."],
+        ["island", "Land surrounded by water on every side."],
+        ["jungle", "A dense tropical forest full of life."],
+        ["meadow", "A grassy field that sounds like a picnic spot."],
+        ["mountain", "A very tall landform with a summit."],
+        ["rainbow", "A colourful arc that appears after rain."],
+        ["river", "A natural flow of water that heads downhill."],
+        ["volcano", "A mountain that may erupt with lava."],
+        ["waterfall", "A river taking a dramatic drop."],
+        ["wildflower", "A flower growing without a garden plan."],
+        ["windmill", "A tall structure that turns when the wind blows."]
+      ],
+      everyday: [
+        ["alarm", "A device whose job is to interrupt your best dream."],
+        ["blanket", "A cosy cover that makes getting up harder."],
+        ["candle", "A small light with a flame and a waxy base."],
+        ["curtain", "Fabric that gives a window some privacy."],
+        ["doormat", "A rug that says hello to your shoes."],
+        ["doorbell", "A button visitors press instead of texting."],
+        ["flashlight", "A portable light for finding things in the dark."],
+        ["fridge", "A cold cupboard that gets opened for no reason."],
+        ["lighthouse", "A tall building that helps ships find the coast."],
+        ["pillow", "A soft place for your head to make plans."],
+        ["scissors", "A tool with two blades and a very specific haircut risk."],
+        ["suitcase", "A travel box that is always heavier on the way home."],
+        ["toaster", "A machine that turns bread into crunchy bread."],
+        ["umbrella", "A portable roof that turns inside out in strong wind."],
+        ["vacuum", "A machine that eats dust but not lost socks."],
+        ["wallet", "A small place for money and forgotten receipts."]
+      ],
+      silly: [
+        ["bananas", "A fruit that is also a very useful comedy word."],
+        ["bubbles", "Floating spheres that pop when the fun gets too close."],
+        ["giggles", "The sound made when somebody says 'spaghetti' seriously."],
+        ["hiccup", "A tiny noise that arrives without an invitation."],
+        ["jellyfish", "A sea creature with no bones and a very wobbly name."],
+        ["muffin", "A small cake pretending to be breakfast."],
+        ["noodle", "Pasta, or an affectionate word for a silly person."],
+        ["pickle", "A cucumber that took a long bath in vinegar."],
+        ["sneakers", "Shoes designed for running, walking, or sneaking snacks."],
+        ["squirrel", "A tree-climbing animal with excellent snack storage."],
+        ["tadpole", "A baby frog that has not grown its legs yet."],
+        ["tickle", "A gentle attack that makes people laugh."],
+        ["waffles", "A breakfast food with a very practical grid."],
+        ["wiggles", "What a worm does when it is showing off."],
+        ["yodel", "A singing style that echoes around the mountains."],
+        ["zucchini", "A green vegetable with a name that sounds like a sneeze."]
+      ]
+    };
+
+    const HANGMAN_CAPTIONS = [
+      "The gallows is quiet. For now.",
+      "A head appears. It looks mildly concerned.",
+      "The body arrives. It did not bring a chair.",
+      "One arm appears. It waves very awkwardly.",
+      "Both arms are here. A tiny shrug is implied.",
+      "One leg appears. The stance is questionable.",
+      "The figure is complete. The word had its chance."
+    ];
+
+    const CORRECT_MESSAGES = [
+      "Nice! That letter was in there all along.",
+      "Correct! The mystery word has given up a clue.",
+      "Good guess. Your alphabet instincts are strong.",
+      "You found one! The word is looking nervous.",
+      "Yes! The stick figure approves of this letter.",
+      "A hit! The dictionary is quietly impressed."
+    ];
+
+    const WRONG_MESSAGES = [
+      "Nope. The word says it has never met that letter.",
+      "Wrong! The stick figure has requested a tiny helmet.",
+      "Miss! The alphabet is being difficult today.",
+      "Not this time. That letter was not invited.",
+      "No luck. The word is being suspiciously smug.",
+      "Incorrect. The gallows crew is assembling."
+    ];
+
+    const state = {
+      secret: "",
+      hint: "",
+      category: "",
+      guessed: new Set(),
+      wrong: 0,
+      hintUsed: false,
+      finished: false,
+      round: 0,
+      score: 0
+    };
+
+    const elements = {
+      bestScore: document.querySelector("#best-score"),
+      category: document.querySelector("#category-label"),
+      categorySelect: document.querySelector("#category-select"),
+      difficultySelect: document.querySelector("#difficulty-select"),
+      face: document.querySelector("#face"),
+      giveUpButton: document.querySelector("#give-up-button"),
+      hintButton: document.querySelector("#hint-button"),
+      hintBox: document.querySelector("#hint-box"),
+      keyboard: document.querySelector("#keyboard"),
+      lives: document.querySelector("#lives"),
+      message: document.querySelector("#message"),
+      newGameButton: document.querySelector("#new-game-button"),
+      roundTag: document.querySelector("#round-tag"),
+      sceneCaption: document.querySelector("#scene-caption"),
+      storageStatus: document.querySelector("#storage-status"),
+      word: document.querySelector("#word"),
+      announcer: document.querySelector("#announcer")
+    };
+
+    function reportStorageUnavailable() {
+      elements.storageStatus.textContent =
+        "Best score could not be saved in this browser.";
+      elements.storageStatus.classList.add("warning");
+    }
+
+    function readBestScore() {
+      try {
+        const storedScore = Number(
+          window.localStorage.getItem("lastWordStandingBest")
+        );
+        return Number.isFinite(storedScore) && storedScore > 0 ? storedScore : 0;
+      } catch {
+        reportStorageUnavailable();
+        return 0;
+      }
+    }
+
+    function saveBestScore(score) {
+      try {
+        if (score <= readBestScore()) {
+          return;
+        }
+        window.localStorage.setItem("lastWordStandingBest", String(score));
+        elements.bestScore.textContent = String(score);
+      } catch {
+        reportStorageUnavailable();
+      }
+    }
+
+    function chooseWord() {
+      const selectedCategory = elements.categorySelect.value;
+      const categoryKeys = Object.keys(WORDS);
+      const category = selectedCategory === "random"
+        ? categoryKeys[Math.floor(Math.random() * categoryKeys.length)]
+        : selectedCategory;
+      const difficulty = elements.difficultySelect.value;
+      let options = WORDS[category];
+
+      if (difficulty === "easy") {
+        const shortWords = options.filter(([word]) => word.length <= 6);
+        if (shortWords.length > 0) {
+          options = shortWords;
+        }
+      } else if (difficulty === "hard") {
+        const longWords = options.filter(([word]) => word.length >= 8);
+        if (longWords.length > 0) {
+          options = longWords;
+        }
+      }
+
+      const choice = options[Math.floor(Math.random() * options.length)];
+      return { category, secret: choice[0], hint: choice[1] };
+    }
+
+    function setMessage(text, type = "") {
+      elements.message.textContent = text;
+      elements.message.className = `message${type ? ` ${type}` : ""}`;
+      elements.announcer.textContent = text;
+    }
+
+    function renderWord() {
+      elements.word.replaceChildren();
+      for (const letter of state.secret) {
+        const slot = document.createElement("span");
+        slot.className = "letter-slot";
+        slot.textContent = state.guessed.has(letter) || state.finished ? letter : "";
+        slot.setAttribute(
+          "aria-label",
+          state.guessed.has(letter) || state.finished ? letter : "hidden letter"
+        );
+        if (state.guessed.has(letter)) {
+          slot.classList.add("revealed");
+        }
+        elements.word.append(slot);
+      }
+    }
+
+    function renderKeyboard() {
+      elements.keyboard.replaceChildren();
+      for (const letter of "abcdefghijklmnopqrstuvwxyz") {
+        const key = document.createElement("button");
+        key.type = "button";
+        key.className = "key";
+        key.textContent = letter;
+        key.setAttribute("aria-label", `Guess ${letter}`);
+        key.disabled = state.finished || state.guessed.has(letter);
+
+        if (state.guessed.has(letter)) {
+          key.classList.add(state.secret.includes(letter) ? "correct" : "wrong");
+        }
+
+        key.addEventListener("click", () => guessLetter(letter));
+        elements.keyboard.append(key);
+      }
+    }
+
+    function renderDrawing() {
+      const parts = document.querySelectorAll(".body-part");
+      parts.forEach((part, index) => {
+        part.classList.toggle("visible", index < state.wrong);
+      });
+      elements.face.classList.toggle("visible", state.wrong === 6);
+      elements.sceneCaption.textContent = HANGMAN_CAPTIONS[state.wrong];
+      elements.lives.lastElementChild.textContent =
+        `${6 - state.wrong} ${state.wrong === 5 ? "guess" : "guesses"} left`;
+      document.querySelector("#drawing-description").textContent =
+        `The hangman drawing has ${state.wrong} of 6 body parts.`;
+    }
+
+    function updateActions() {
+      elements.hintButton.disabled = state.finished || state.hintUsed;
+      elements.giveUpButton.disabled = state.finished;
+    }
+
+    function render() {
+      renderWord();
+      renderKeyboard();
+      renderDrawing();
+      updateActions();
+    }
+
+    function finishGame(won, gaveUp = false) {
+      state.finished = true;
+      render();
+
+      if (won) {
+        const roundScore = 100 + (6 - state.wrong) * 20 + (state.hintUsed ? 0 : 25);
+        state.score += roundScore;
+        saveBestScore(state.score);
+        elements.hintBox.innerHTML =
+          `<strong>Word found:</strong>&nbsp; ${state.secret.toUpperCase()}`;
+        setMessage(
+          `You win! +${roundScore} points. The word is free to stop hiding.`,
+          "success"
+        );
+      } else if (gaveUp) {
+        elements.hintBox.innerHTML =
+          `<strong>The word was:</strong>&nbsp; ${state.secret.toUpperCase()}`
+          + `&nbsp; · &nbsp; ${state.hint}`;
+        setMessage(`Round ended. The word was ${state.secret}.`);
+      } else {
+        elements.hintBox.innerHTML =
+          `<strong>The word was:</strong>&nbsp; ${state.secret.toUpperCase()}`
+          + `&nbsp; · &nbsp; ${state.hint}`;
+        setMessage(
+          `The figure is complete. The word wins this round. Your score: ${state.score}.`,
+          "error"
+        );
+      }
+    }
+
+    function guessLetter(letter) {
+      if (state.finished || state.guessed.has(letter)) {
+        return;
+      }
+
+      state.guessed.add(letter);
+      if (state.secret.includes(letter)) {
+        setMessage(
+          CORRECT_MESSAGES[Math.floor(Math.random() * CORRECT_MESSAGES.length)],
+          "success"
+        );
+        if ([...state.secret].every((character) => state.guessed.has(character))) {
+          finishGame(true);
+          return;
+        }
+      } else {
+        state.wrong += 1;
+        setMessage(
+          WRONG_MESSAGES[Math.floor(Math.random() * WRONG_MESSAGES.length)],
+          "error"
+        );
+        if (state.wrong === 6) {
+          finishGame(false);
+          return;
+        }
+      }
+      render();
+    }
+
+    function useHint() {
+      if (state.finished || state.hintUsed) {
+        return;
+      }
+
+      state.hintUsed = true;
+      state.wrong += 1;
+      elements.hintBox.textContent = state.hint;
+      if (state.wrong === 6) {
+        finishGame(false);
+        return;
+      }
+      setMessage("Hint revealed. The stick figure charges one life for consulting.");
+      render();
+    }
+
+    function startGame() {
+      const choice = chooseWord();
+      state.secret = choice.secret;
+      state.hint = choice.hint;
+      state.category = choice.category;
+      state.guessed = new Set();
+      state.wrong = 0;
+      state.hintUsed = false;
+      state.finished = false;
+      state.round += 1;
+
+      elements.category.textContent = `Category: ${state.category}`;
+      elements.roundTag.textContent = `ROUND ${state.round}`;
+      elements.hintBox.textContent =
+        "Pick a letter. Your keyboard is ready when you are.";
+      setMessage("Choose a letter to begin.");
+      render();
+    }
+
+    function handleKeydown(event) {
+      const target = event.target;
+      if (
+        target instanceof HTMLElement
+        && (
+          target.isContentEditable
+          || ["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName)
+        )
+      ) {
+        return;
+      }
+      if (event.altKey || event.ctrlKey || event.metaKey) {
+        return;
+      }
+      if (event.key === "Escape") {
+        startGame();
+        return;
+      }
+      if (/^[a-z]$/i.test(event.key)) {
+        guessLetter(event.key.toLowerCase());
+      }
+    }
+
+    elements.newGameButton.addEventListener("click", startGame);
+    elements.hintButton.addEventListener("click", useHint);
+    elements.giveUpButton.addEventListener("click", () => finishGame(false, true));
+    document.addEventListener("keydown", handleKeydown);
+
+    elements.bestScore.textContent = String(readBestScore());
+    startGame();
+  </script>
+</body>
+</html>
